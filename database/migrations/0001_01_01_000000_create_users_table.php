@@ -17,8 +17,12 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+
+            $table->tinyInteger('salary_date')->default(1); // Tanggal reset budget (1-31)
+
             $table->rememberToken();
             $table->timestamps();
+            $table->softDeletes(); // Data user bisa direstore jika salah hapus
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
