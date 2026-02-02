@@ -6,11 +6,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes; // 2. Pasang fitur SoftDeletes
 
     /**
      * The attributes that are mass assignable.
@@ -21,6 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'salary_date',
     ];
 
     /**
@@ -44,5 +46,18 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+
+    // 1 User bisa punya banyak Kantong (Dompet, Tabungan, Wishlist)
+    public function pockets()
+    {
+        return $this->hasMany(Pocket::class);
+    }
+
+    // 1 User bisa punya banyak Transaksi
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
     }
 }
