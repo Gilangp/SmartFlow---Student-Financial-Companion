@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -11,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes; // 2. Pasang fitur SoftDeletes
+    use HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -48,14 +47,21 @@ class User extends Authenticatable
         ];
     }
 
-
-    // 1 User bisa punya banyak Kantong (Dompet, Tabungan, Wishlist)
+    /**
+     * Relasi: 1 User memiliki banyak Pocket (Dompet, Tabungan, Wishlist)
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
     public function pockets()
     {
         return $this->hasMany(Pocket::class);
     }
 
-    // 1 User bisa punya banyak Transaksi
+    /**
+     * Relasi: 1 User memiliki banyak Transaksi (Income dan Expense)
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
