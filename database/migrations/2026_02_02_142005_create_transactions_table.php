@@ -6,45 +6,51 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('pocket_id')->constrained()->onDelete('cascade'); // Uang ini ada di kantong mana?
+            $table->foreignId('user_id')
+                ->constrained()
+                ->cascadeOnDelete();
 
-            // Jika kategori dihapus, transaksinya jangan hilang, tapi jadi "Uncategorized" (null)
-            $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('pocket_id')
+                ->constrained()
+                ->cascadeOnDelete();
+
+            $table->foreignId('category_id')
+                ->nullable()
+                ->constrained()
+                ->nullOnDelete();
 
             $table->string('description')->nullable();
             $table->decimal('amount', 15, 2);
             $table->date('date');
 
-            // Tipe Transaksi
-            $table->enum('type', ['income', 'expense']);
+            $table->enum('type', [
+                'income',
+                'expense',
+                'transfer_in',
+                'transfer_out',
+            ]);
 
-            // Khusus Pemasukan (Income)
-            $table->enum('income_source', ['routine', 'bonus'])->nullable(); // Rutin (Ortu) vs Bonus (Freelance)
+            $table->enum('income_source', ['routine', 'bonus'])->nullable();
 
-            // Fitur Canggih: Batch ID
-            // Digunakan saat fitur "Auto Split" memecah 1 pemasukan menjadi 4 transaksi berbeda
             $table->uuid('batch_id')->nullable();
 
-            // Penanda AI
             $table->boolean('is_ai_generated')->default(false);
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->index(['user_id', 'date']);
+            $table->index(['pocket_id', 'date']);
+            $table->index(['pocket_id', 'type']);
+            $table->index('batch_id');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('transactions');

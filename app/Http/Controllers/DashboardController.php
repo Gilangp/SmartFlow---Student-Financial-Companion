@@ -5,98 +5,114 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use App\Services\GeminiService;
-use App\Models\Pocket;
 
 class DashboardController extends Controller
 {
     /**
-     * Hitung sisa hari sampai tanggal gajian berikutnya
-     *
-     * @return int Jumlah hari tersisa (minimum 1)
+     * Hitung sisa hari sampai gajian berikutnya
      */
-    private function calculateRemainingDays(): int
+    private function remainingDays(): int
     {
-        $today = Carbon::now();
-        $salaryDate = Auth::user()->salary_date ?? 1;
+        $user       = Auth::user();
+        $today      = Carbon::today();
+        $salaryDate = $user->salary_date ?? 1;
 
-        $paydayThisMonth = Carbon::now()->setDay($salaryDate);
+        $nextPayday = Carbon::create(
+            $today->year,
+            $today->month,
+            min($salaryDate, $today->daysInMonth)
+        );
 
-        if ($today->day >= $salaryDate) {
-            $nextPayday = $paydayThisMonth->copy()->addMonth();
-        } else {
-            $nextPayday = $paydayThisMonth;
+        if ($today->greaterThanOrEqualTo($nextPayday)) {
+            $nextPayday->addMonth();
         }
 
-        $remainingDays = $today->diffInDays($nextPayday);
-        return $remainingDays == 0 ? 1 : $remainingDays;
+        return max(1, $today->diffInDays($nextPayday));
     }
 
     /**
-     * Tampilkan dashboard dengan budget dan pocket data
-     *
-     * @return \Illuminate\View\View
+     * Dashboard utama
      */
     public function index()
     {
         $user = Auth::user();
-        $mainPocket = Pocket::where('user_id', $user->id)->where('type', 'main')->first();
-        $emergencyPocket = Pocket::where('user_id', $user->id)->where('type', 'emergency')->first();
-        $savingsPocket = Pocket::where('user_id', $user->id)->where('type', 'savings')->first();
-        $wishlistPocket = Pocket::where('user_id', $user->id)->where('type', 'wishlist')->first();
 
-        $today = Carbon::now();
-        $remainingDays = $this->calculateRemainingDays();
+        $pockets = $user->pockets->groupBy('type');
 
-        // Hitung jatah harian dari saldo utama dibagi sisa hari
-        $dailyBudget = $mainPocket && $mainPocket->balance > 0
+        $mainPocket      = $pockets->get('main')?->first();
+        $savingsPocket   = $pockets->get('savings')?->first();
+        $emergencyPocket = $pockets->get('emergency')?->first();
+        $wishlistPockets = $pockets->get('wishlist') ?? collect();
+
+        $remainingDays = $this->remainingDays();
+
+        $dailyBudget = ($mainPocket && $mainPocket->balance > 0)
             ? $mainPocket->balance / $remainingDays
             : 0;
 
-        // Hitung total pengeluaran hari ini
         $todayExpense = $mainPocket
             ? $mainPocket->transactions()
-                ->whereDate('date', $today)
+                ->whereDate('date', Carbon::today())
                 ->where('type', 'expense')
                 ->sum('amount')
             : 0;
 
         return view('dashboard.index', compact(
-            'user', 'mainPocket', 'emergencyPocket',
-            'savingsPocket', 'wishlistPocket', 'remainingDays',
-            'dailyBudget', 'todayExpense'
+            'user',
+            'mainPocket',
+            'savingsPocket',
+            'emergencyPocket',
+            'wishlistPockets',
+            'remainingDays',
+            'dailyBudget',
+            'todayExpense'
         ));
     }
 
     /**
-     * Fetch AI roasting untuk kondisi finansial user
-     *
-     * @param GeminiService $ai
-     * @return \Illuminate\Http\JsonResponse
+     * AI Financial Advice (hari ini saja)
      */
     public function getAdvice(GeminiService $ai)
     {
         $user = Auth::user();
-        $mainPocket = Pocket::where('user_id', $user->id)
-                            ->where('type', 'main')
-                            ->first();
 
-        // Ambil 5 transaksi terakhir untuk konteks
-        $transactions = $user->transactions()->latest()->take(5)->get();
+        $mainPocket = $user->pockets()
+            ->where('type', 'main')
+            ->first();
 
-        $remainingDays = $this->calculateRemainingDays();
-        $mainBalance = $mainPocket?->balance ?? 0;
+        $remainingDays = $this->remainingDays();
+        $mainBalance   = $mainPocket?->balance ?? 0;
 
-        // Jatah harian = saldo utama / sisa hari
-        $dailyBudget = $mainBalance > 0 ? $mainBalance / $remainingDays : 0;
+        $dailyBudget = $mainBalance > 0
+            ? $mainBalance / $remainingDays
+            : 0;
+
+        $todayExpense = $mainPocket
+            ? $mainPocket->transactions()
+                ->whereDate('date', Carbon::today())
+                ->where('type', 'expense')
+                ->sum('amount')
+            : 0;
+
+        $transactions = $mainPocket
+            ? $mainPocket->transactions()
+                ->whereDate('date', Carbon::today())
+                ->latest()
+                ->take(3)
+                ->get()
+            : collect();
 
         $message = $ai->analyzeFinance(
             $user,
-            $transactions,
+            $todayExpense,
             $dailyBudget,
             $mainBalance,
-            $remainingDays
+            $remainingDays,
+            $transactions
         );
 
-        return response()->json(['message' => $message]);
+        return response()->json([
+            'message' => $message
+        ]);
     }
 }

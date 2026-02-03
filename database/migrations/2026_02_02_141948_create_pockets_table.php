@@ -6,35 +6,37 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('pockets', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // User hapus = Pocket hapus
 
-            $table->string('name'); // "Dompet Harian", "Tabungan Laptop"
+            $table->foreignId('user_id')
+                ->constrained()
+                ->cascadeOnDelete();
 
-            // INI KOLOM TERPENTING: Menentukan logika bisnis
-            $table->enum('type', ['main', 'emergency', 'savings', 'wishlist']);
+            $table->string('name');
+
+            $table->enum('type', [
+                'main',
+                'savings',
+                'emergency',
+                'wishlist',
+            ]);
 
             $table->decimal('balance', 15, 2)->default(0);
-            $table->decimal('target_amount', 15, 2)->nullable(); // Target (Wajib untuk Wishlist/Emergency)
+            $table->decimal('target_amount', 15, 2)->nullable();
 
-            // Status
-            $table->boolean('is_completed')->default(false); // Jika Wishlist tercapai
-            $table->boolean('is_locked')->default(false);    // Jika Emergency/Savings (peringatan saat ditarik)
+            $table->boolean('is_completed')->default(false);
+            $table->boolean('is_locked')->default(false);
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->index(['user_id', 'type']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('pockets');

@@ -10,29 +10,17 @@ class Pocket extends Model
 {
     use HasFactory, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<string>
-     */
     protected $guarded = ['id'];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
-        'balance' => 'decimal:2',
-        'target_amount' => 'decimal:2',
-        'is_completed' => 'boolean',
-        'is_locked' => 'boolean',
+        'balance'        => 'decimal:2',
+        'target_amount'  => 'decimal:2',
+        'is_completed'   => 'boolean',
+        'is_locked'      => 'boolean',
     ];
 
     /**
-     * Relasi: Pocket dimiliki oleh 1 User
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     * Relasi: Pocket → User
      */
     public function user()
     {
@@ -40,9 +28,7 @@ class Pocket extends Model
     }
 
     /**
-     * Relasi: 1 Pocket memiliki banyak Transaksi
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     * Relasi: Pocket → Transactions
      */
     public function transactions()
     {

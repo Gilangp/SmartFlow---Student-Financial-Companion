@@ -6,28 +6,27 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
 
-            // Jika NULL = Kategori bawaan sistem (Default). Jika ada ID = Kategori buatan user.
-            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('user_id')
+                ->nullable()
+                ->constrained()
+                ->nullOnDelete();
 
-            $table->string('name'); // Makan, Transport, Skincare
-            $table->enum('type', ['need', 'want']); // Kunci untuk AI Financial Roaster
+            $table->string('name');
+
+            $table->enum('type', ['need', 'want']);
 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->index(['user_id', 'type']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('categories');

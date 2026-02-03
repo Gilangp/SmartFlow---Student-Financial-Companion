@@ -10,27 +10,15 @@ class Category extends Model
 {
     use HasFactory, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<string>
-     */
     protected $guarded = ['id'];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
 
     /**
-     * Relasi: Category milik 1 User (atau NULL jika kategori sistem)
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     * Relasi: Category → User (nullable, kategori sistem)
      */
     public function user()
     {
@@ -38,9 +26,7 @@ class Category extends Model
     }
 
     /**
-     * Relasi: 1 Category memiliki banyak Transaksi
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     * Relasi: Category → Transactions
      */
     public function transactions()
     {
